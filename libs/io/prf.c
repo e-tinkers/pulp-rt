@@ -430,7 +430,6 @@ int _prf(int (*func)(), void *dest, char *format, va_list vargs)
 	char			*cptr_temp;
 	int32_t			*int32ptr_temp;
 	int32_t			int32_temp;
-	uint32_t		uint32_temp;
 	uint64_t		double_temp;
 	long long       val;
 
@@ -563,7 +562,7 @@ int _prf(int (*func)(), void *dest, char *format, va_list vargs)
 				case 'h':
 				case 'H':
 				default:
-					val = va_arg(vargs, int);
+					val = va_arg(vargs, int32_t);
 					break;
 				}
 
@@ -582,18 +581,17 @@ int _prf(int (*func)(), void *dest, char *format, va_list vargs)
 			case 'g':
 			case 'G':
 				/* standard platforms which supports double */
-			{
-				union {
-					double d;
-					uint64_t i;
-				} u;
+				{
+					union {
+						double d;
+						uint64_t i;
+					} u;
 
-				u.d = (double) va_arg(vargs, double);
-				double_temp = u.i;
-			}
+					u.d = (double) va_arg(vargs, double);
+					double_temp = u.i;
+				}
 
-				c = _to_float(buf, double_temp, c, falt, fplus,
-					      fspace, precision);
+				c = _to_float(buf, double_temp, c, falt, fplus, fspace, precision);
 				if (fplus || fspace || (buf[0] == '-'))
 					prefix = 1;
 				need_justifying = true;
@@ -621,8 +619,8 @@ int _prf(int (*func)(), void *dest, char *format, va_list vargs)
 						break;
 					}
 					continue;
-				// int32ptr_temp = (int32_t *)va_arg(vargs, int32_t *);
-				// *int32ptr_temp = count;
+				int32ptr_temp = (int32_t *)va_arg(vargs, int32_t *);
+				*int32ptr_temp = count;
 				break;
 
 			// case 'o':
@@ -634,8 +632,8 @@ int _prf(int (*func)(), void *dest, char *format, va_list vargs)
 			// 	break;
 
 			case 'p':
-				uint32_temp = (uint32_t) va_arg(vargs, uint32_t);
-				c = _to_hex(buf, uint32_temp, true, 8, (int) 'x');
+				val = (uint32_t) va_arg(vargs, uint32_t);
+				c = _to_hex(buf, val, true, 8, (int) 'x');
 				need_justifying = true;
 				if (precision != -1)
 					pad = ' ';
@@ -726,8 +724,7 @@ int _prf(int (*func)(), void *dest, char *format, va_list vargs)
 							buf[i] = ' ';
 					} else {
 						/* Right justify */
-						(void) memmove((buf + (width - c)), buf, (size_t) (c
-										+ 1));
+						(void) memmove((buf + (width - c)), buf, (size_t) (c + 1));
 						if (pad == ' ')
 							prefix = 0;
 						c = width - c + prefix;
