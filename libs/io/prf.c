@@ -417,12 +417,11 @@ int _prf(int (*func)(), void *dest, char *format, va_list vargs)
 	char			buf[MAXFLD + 1];
 	register int	c;
 	int				count;
-	register char	*cptr;
 	int				falt;
 	int				fminus;
 	int				fplus;
 	int				fspace;
-	register int	i = 0;
+	int	            iden;
 	int				need_justifying;
 	char			pad;
 	int				precision;
@@ -436,6 +435,7 @@ int _prf(int (*func)(), void *dest, char *format, va_list vargs)
 	long long       val;
 
 	count = 0;
+	iden = 0;
 
 	while ((c = *format++)) {
 		if (c != '%') {
@@ -525,13 +525,13 @@ int _prf(int (*func)(), void *dest, char *format, va_list vargs)
 			 */
 
 			if (strchr("hHlLz", c) != NULL) {
-				i = c;
+				iden = c;
 				c = *format++;
-				if (i == 'l' && c == 'l') {
-					i = 'L';
+				if (iden == 'l' && c == 'l') {
+					iden = 'L';
 					c = *format++;
-				} else if (i == 'h' && c == 'h') {
-					i = 'H';
+				} else if (iden == 'h' && c == 'h') {
+					iden = 'H';
 					c = *format++;
 				}
 			}
@@ -549,16 +549,17 @@ int _prf(int (*func)(), void *dest, char *format, va_list vargs)
 
 			case 'd':
 			case 'i':
-				switch (i) {
+				switch (iden) {
 				case 'l':
 					val = va_arg(vargs, long);
 					break;
 				case 'L':
+				case 'z':
 					val = va_arg(vargs, long long);
 					break;
-				case 'z':
-					val = va_arg(vargs, size_t);
-					break;
+				// case 'z':
+				// 	val = va_arg(vargs, size_t);
+				// 	break;
 				case 'h':
 				case 'H':
 				default:
@@ -599,7 +600,7 @@ int _prf(int (*func)(), void *dest, char *format, va_list vargs)
 				break;
 				if (fplus || fspace || (int32_temp < 0))
 			case 'n':
-				switch (i) {
+				switch (iden) {
 					case 'h':
 						*va_arg(vargs, short *) = count;
 						break;
@@ -660,16 +661,17 @@ int _prf(int (*func)(), void *dest, char *format, va_list vargs)
 			case 'u':
 			case 'x':
 			case 'X':
-				switch (i) {
+				switch (iden) {
 					case 'l':
 						val = va_arg(vargs, unsigned long);
 						break;
 					case 'L':
+					case 'z':
 						val = va_arg(vargs, unsigned long long);
 						break;
-					case 'z':
-						val = va_arg(vargs, size_t);
-						break;
+					// case 'z':
+					// 	val = va_arg(vargs, size_t);
+					// 	break;
 					case 'h':
 					case 'H':
 					default:
@@ -720,7 +722,7 @@ int _prf(int (*func)(), void *dest, char *format, va_list vargs)
 				if (c < width) {
 					if (fminus)	{
 						/* Left justify? */
-						for (i = c; i < width; i++)
+						for (int i = c; i < width; i++)
 							buf[i] = ' ';
 					} else {
 						/* Right justify */
@@ -729,13 +731,13 @@ int _prf(int (*func)(), void *dest, char *format, va_list vargs)
 						if (pad == ' ')
 							prefix = 0;
 						c = width - c + prefix;
-						for (i = prefix; i < c; i++)
+						for (int i = prefix; i < c; i++)
 							buf[i] = pad;
 					}
 					c = width;
 				}
 
-				for (cptr = buf; c > 0; c--, cptr++, count++) {
+				for (register char* cptr = buf; c > 0; c--, cptr++, count++) {
 					if ((*func)(*cptr, dest) == EOF)
 						return EOF;
 				}
