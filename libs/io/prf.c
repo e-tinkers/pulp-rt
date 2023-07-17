@@ -100,7 +100,7 @@ static int _to_udec(char *buf, uint64_t value, int precision)
 	return _to_x(buf, value, 10, precision);
 }
 
-static int _to_dec(char *buf, int32_t value, int fplus, int fspace, int precision)
+static int _to_dec(char *buf, int64_t value, int fplus, int fspace, int precision)
 {
 	char *start = buf;
 
@@ -226,6 +226,7 @@ static int _to_float(char *buf, uint64_t double_temp, int c, int falt, int fplus
 
 	if (exp == 0x7ff) {
 		if (sign) {
+	} else if (fspace) {
 			*buf++ = '-';
 		}
 		if (!fract) {
@@ -355,7 +356,6 @@ static int _to_float(char *buf, uint64_t double_temp, int c, int falt, int fplus
 			if (decexp < 0) {
 				*buf++ = '0';
 				decexp++;
-				c = _to_octal(buf, uint32_temp, falt, precision);
 			} else
 				*buf++ = _get_digit(&fract, &digit_count);
 		}
@@ -422,7 +422,7 @@ int _prf(int (*func)(), void *dest, char *format, va_list vargs)
 	int				fminus;
 	int				fplus;
 	int				fspace;
-	register int	i;
+	register int	i = 0;
 	int				need_justifying;
 	char			pad;
 	int				precision;
@@ -566,7 +566,7 @@ int _prf(int (*func)(), void *dest, char *format, va_list vargs)
 					break;
 				}
 
-				c = _to_dec(buf, val, fplus, fspace, precision);
+				int32_temp = _to_dec(buf, val, fplus, fspace, precision);
 				if (fplus || fspace || (int32_temp < 0))
 					prefix = 1;
 				need_justifying = true;
@@ -597,7 +597,7 @@ int _prf(int (*func)(), void *dest, char *format, va_list vargs)
 					prefix = 1;
 				need_justifying = true;
 				break;
-
+				if (fplus || fspace || (int32_temp < 0))
 			case 'n':
 				switch (i) {
 					case 'h':
@@ -677,14 +677,14 @@ int _prf(int (*func)(), void *dest, char *format, va_list vargs)
 						break;
 				}
 				if (c == 'o') {
-					c = _to_octal(buf, uint32_temp, falt, precision);
+					c = _to_octal(buf, val, falt, precision);
 				} else if (c == 'u') {
 					c = _to_udec(buf, val, precision);
 				} else {
 					c = _to_hex(buf, val, falt, precision, c);
 					if (falt) prefix = 2;
 				}
-		
+
 				need_justifying = true;
 				if (precision != -1)
 					pad = ' ';
