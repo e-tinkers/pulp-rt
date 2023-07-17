@@ -30,34 +30,13 @@ static void _uc(char *buf)
 	}
 }
 
-/* Convention note: "end" as passed in is the standard "byte after
- * last character" style, but...
- */
-static int _reverse_and_pad(char *start, char *end, int minlen)
-{
-	int len;
-
-	while (end - start < minlen) {
-		*end++ = '0';
-	}
-
-	*end = 0;
-	len = end - start;
-	for (end--; end > start; end--, start++) {
-		char tmp = *end;
-		*end = *start;
-		*start = tmp;
-	}
-	return len;
-}
-
 /* Writes the specified number into the buffer in the given base,
  * using the digit characters 0-9a-z (i.e. base>36 will start writing
  * odd bytes), padding with leading zeros up to the minimum length.
  */
-static int _to_x(char *buf, uint32_t n, int base, int minlen)
+static int _to_x(char *buf, uint64_t n, int base, int minlen)
 {
-	char *buf0 = buf;
+	char *start = buf;
 
 	do {
 		int d = n % base;
@@ -65,11 +44,25 @@ static int _to_x(char *buf, uint32_t n, int base, int minlen)
 		n /= base;
 		*buf++ = '0' + d + (d > 9 ? ('a' - '0' - 10) : 0);
 	} while (n);
-	return _reverse_and_pad(buf0, buf, minlen);
+
+	// reserve the string and pad with leading zero if necessary
+	int len;
+
+	while (buf - start < minlen) {
+		*buf++ = '0';
+	}
+
+	*buf = 0;
+	len = buf - start;
+	for (buf--; buf > start; buf--, start++) {
+		char tmp = *buf;
+		*buf = *start;
+		*start = tmp;
+	}
+	return len;
 }
 
-static int _to_hex(char *buf, uint32_t value,
-		   int alt_form, int precision, int prefix)
+static int _to_hex(char *buf, uint64_t value, int alt_form, int precision, int prefix)
 {
 	int len;
 	char *buf0 = buf;
@@ -87,7 +80,7 @@ static int _to_hex(char *buf, uint32_t value,
 	return len + (buf - buf0);
 }
 
-static int _to_octal(char *buf, uint32_t value, int alt_form, int precision)
+static int _to_octal(char *buf, uint64_t value, int alt_form, int precision)
 {
 	char *buf0 = buf;
 
@@ -102,7 +95,7 @@ static int _to_octal(char *buf, uint32_t value, int alt_form, int precision)
 	return (buf - buf0) + _to_x(buf, value, 8, precision);
 }
 
-static int _to_udec(char *buf, uint32_t value, int precision)
+static int _to_udec(char *buf, uint64_t value, int precision)
 {
 	return _to_x(buf, value, 10, precision);
 }
@@ -111,20 +104,20 @@ static int _to_dec(char *buf, int32_t value, int fplus, int fspace, int precisio
 {
 	char *start = buf;
 
-#if (MAXFLD < 10)
+#if (MAXFLD < 16)
   #error buffer size MAXFLD is too small
 #endif
 
 	if (value < 0) {
 		*buf++ = '-';
-		if (value != (int32_t)0x80000000)
+		if (value != (int64_t)0x8000000000000000)
 			value = -value;
 	} else if (fplus)
 		*buf++ = '+';
 	else if (fspace)
 		*buf++ = ' ';
 
-	return (buf + _to_udec(buf, (uint32_t) value, precision)) - start;
+	return (buf + _to_udec(buf, value, precision)) - start;
 }
 
 static	void _rlrshift(uint64_t *v)
@@ -430,8 +423,8 @@ int _prf(int (*func)(), void *dest, char *format, va_list vargs)
 	char			*cptr_temp;
 	int32_t			*int32ptr_temp;
 	int32_t			int32_temp;
-	uint32_t			uint32_temp;
-	uint64_t			double_temp;
+	uint32_t		uint32_temp;
+	uint64_t		double_temp;
 
 	count = 0;
 
@@ -442,7 +435,6 @@ int _prf(int (*func)(), void *dest, char *format, va_list vargs)
 			}
 
 			count++;
-
 		} else {
 			fminus = fplus = fspace = falt = false;
 			pad = ' ';		/* Default pad character    */
