@@ -141,7 +141,16 @@ static	void _rlrshift(uint64_t *v)
  * taken from the full 64 bit space.
  */
 static void _ldiv5(uint64_t *v)
-{
+{			// case 'x':
+			// case 'X':
+			// 	uint32_temp = (uint32_t) va_arg(vargs, uint32_t);
+			// 	c = _to_hex(buf, uint32_temp, falt, precision, c);
+			// 	if (falt)
+			// 		prefix = 2;
+			// 	need_justifying = true;
+			// 	if (precision != -1)
+			// 		pad = ' ';
+			// 	break;
 	uint32_t i, hi;
 	uint64_t rem = *v, quot = 0, q;
 	static const char shifts[] = { 32, 3, 0 };
@@ -200,8 +209,7 @@ static	char _get_digit(uint64_t *fr, int *digit_count)
 #define	MAXFP1	0xFFFFFFFF	/* Largest # if first fp format */
 #define HIGHBIT64 (1ull<<63)
 
-static int _to_float(char *buf, uint64_t double_temp, int c,
-					 int falt, int fplus, int fspace, int precision)
+static int _to_float(char *buf, uint64_t double_temp, int c, int falt, int fplus, int fspace, int precision)
 {
 	register int    decexp;
 	register int    exp;
@@ -215,7 +223,6 @@ static int _to_float(char *buf, uint64_t double_temp, int c,
 	exp = double_temp >> 52 & 0x7ff;
 	fract = (double_temp << 11) & ~HIGHBIT64;
 	sign = !!(double_temp & HIGHBIT64);
-
 
 	if (exp == 0x7ff) {
 		if (sign) {
@@ -348,6 +355,7 @@ static int _to_float(char *buf, uint64_t double_temp, int c,
 			if (decexp < 0) {
 				*buf++ = '0';
 				decexp++;
+				c = _to_octal(buf, uint32_temp, falt, precision);
 			} else
 				*buf++ = _get_digit(&fract, &digit_count);
 		}
@@ -425,6 +433,7 @@ int _prf(int (*func)(), void *dest, char *format, va_list vargs)
 	int32_t			int32_temp;
 	uint32_t		uint32_temp;
 	uint64_t		double_temp;
+	long long       val;
 
 	count = 0;
 
@@ -508,25 +517,23 @@ int _prf(int (*func)(), void *dest, char *format, va_list vargs)
 			/*
 			 * This implementation only checks that the following format
 			 * specifiers are followed by an appropriate type:
-			 *    h: short
-			 *    l: long
-			 *    L: long double
+			 *    h:  short
+			 *    hh: unsigned char
+			 *    l:  long
+			 *    L:  long long
 			 *    z: size_t or ssize_t
-			 * No further special processing is done for them.
 			 */
 
-			if (strchr("hlLz", c) != NULL) {
+			if (strchr("hHlLz", c) != NULL) {
 				i = c;
 				c = *format++;
-				/*
-				 * Here there was a switch() block
-				 * which was doing nothing useful, I
-				 * am still puzzled at why it was left
-				 * over. Maybe before it contained
-				 * stuff that was needed, but in its
-				 * current form, it was being
-				 * optimized out.
-				 */
+				if (i == 'l' && c == 'l') {
+					i = 'L';
+					c = *format++;
+				} else if (i == 'h' && c == 'h') {
+					i = 'H';
+					c = *format++;
+				}
 			}
 
 			need_justifying = false;
@@ -539,10 +546,27 @@ int _prf(int (*func)(), void *dest, char *format, va_list vargs)
 				c = 1;
 				break;
 
+
 			case 'd':
 			case 'i':
-				int32_temp = (int32_t) va_arg(vargs, int32_t);
-				c = _to_dec(buf, int32_temp, fplus, fspace, precision);
+				switch (i) {
+				case 'l':
+					val = va_arg(vargs, long);
+					break;
+				case 'L':
+					val = va_arg(vargs, long long);
+					break;
+				case 'z':
+					val = va_arg(vargs, size_t);
+					break;
+				case 'h':
+				case 'H':
+				default:
+					val = va_arg(vargs, int);
+					break;
+				}
+
+				c = _to_dec(buf, val, fplus, fspace, precision);
 				if (fplus || fspace || (int32_temp < 0))
 					prefix = 1;
 				need_justifying = true;
@@ -575,17 +599,38 @@ int _prf(int (*func)(), void *dest, char *format, va_list vargs)
 				break;
 
 			case 'n':
-				int32ptr_temp = (int32_t *)va_arg(vargs, int32_t *);
-				*int32ptr_temp = count;
+				switch (i) {
+					case 'h':
+						*va_arg(vargs, short *) = count;
+						break;
+					case 'H':
+						*va_arg(vargs, char *) = count;
+						break;
+					case 'l':
+						*va_arg(vargs, long *) = count;
+						break;
+					case 'L':
+						*va_arg(vargs, long long *) = count;
+						break;
+					case 'z':
+						*va_arg(vargs, size_t *) = count;
+						break;
+					default:
+						*va_arg(vargs, int *) = count;
+						break;
+					}
+					continue;
+				// int32ptr_temp = (int32_t *)va_arg(vargs, int32_t *);
+				// *int32ptr_temp = count;
 				break;
 
-			case 'o':
-				uint32_temp = (uint32_t) va_arg(vargs, uint32_t);
-				c = _to_octal(buf, uint32_temp, falt, precision);
-				need_justifying = true;
-				if (precision != -1)
-					pad = ' ';
-				break;
+			// case 'o':
+			// 	uint32_temp = (uint32_t) va_arg(vargs, uint32_t);
+			// 	c = _to_octal(buf, uint32_temp, falt, precision);
+			// 	need_justifying = true;
+			// 	if (precision != -1)
+			// 		pad = ' ';
+			// 	break;
 
 			case 'p':
 				uint32_temp = (uint32_t) va_arg(vargs, uint32_t);
@@ -611,24 +656,50 @@ int _prf(int (*func)(), void *dest, char *format, va_list vargs)
 				}
 				break;
 
+			case 'o':
 			case 'u':
-				uint32_temp = (uint32_t) va_arg(vargs, uint32_t);
-				c = _to_udec(buf, uint32_temp, precision);
+			case 'x':
+			case 'X':
+				switch (i) {
+					case 'l':
+						val = va_arg(vargs, unsigned long);
+						break;
+					case 'L':
+						val = va_arg(vargs, unsigned long long);
+						break;
+					case 'z':
+						val = va_arg(vargs, size_t);
+						break;
+					case 'h':
+					case 'H':
+					default:
+						val = va_arg(vargs, unsigned int);
+						break;
+				}
+				if (c == 'o') {
+					c = _to_octal(buf, uint32_temp, falt, precision);
+				} else if (c == 'u') {
+					c = _to_udec(buf, val, precision);
+				} else {
+					c = _to_hex(buf, val, falt, precision, c);
+					if (falt) prefix = 2;
+				}
+		
 				need_justifying = true;
 				if (precision != -1)
 					pad = ' ';
 				break;
 
-			case 'x':
-			case 'X':
-				uint32_temp = (uint32_t) va_arg(vargs, uint32_t);
-				c = _to_hex(buf, uint32_temp, falt, precision, c);
-				if (falt)
-					prefix = 2;
-				need_justifying = true;
-				if (precision != -1)
-					pad = ' ';
-				break;
+			// case 'x':
+			// case 'X':
+			// 	uint32_temp = (uint32_t) va_arg(vargs, uint32_t);
+			// 	c = _to_hex(buf, uint32_temp, falt, precision, c);
+			// 	if (falt)
+			// 		prefix = 2;
+			// 	need_justifying = true;
+			// 	if (precision != -1)
+			// 		pad = ' ';
+			// 	break;
 
 			case '%':
 				if ((*func)('%', dest) == EOF) {
