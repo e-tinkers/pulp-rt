@@ -398,19 +398,19 @@ int _prf(int (*func)(), void *dest, char *format, va_list vargs)
 	 * has to be propagated across the file
 	 */
 	char          buf[MAXFLD + 1];
-	register int  c;
-	int           count = 0;
+	char          pad;
+	char          *cptr_temp;
 	bool          falt;
 	bool          fminus;
 	bool          fplus;
 	bool          fspace;
 	bool          need_justifying;
+	int           c;
+	int           count = 0;
 	int           iden = 0;
-	char          pad;
 	int           precision;
 	int           prefix;
 	int           width;
-	char          *cptr_temp;
 	int32_t       *int32ptr_temp;
 	int32_t       int32_temp;
 	uint64_t      double_temp;
@@ -463,8 +463,10 @@ int _prf(int (*func)(), void *dest, char *format, va_list vargs)
 					width = -width;
 				}
 				c = *format++;
-			} else if (!isdigit(c))
+			} 
+			else if (!isdigit(c)) {
 				width = 0;
+			}
 			else {
 				width = _atoi(&format);	/* Find width */
 				c = *format++;
@@ -483,11 +485,11 @@ int _prf(int (*func)(), void *dest, char *format, va_list vargs)
 			if (c == '.') {
 				c = *format++;
 				if (c == '*') {
-					precision = (int32_t)
-					va_arg(vargs, int32_t);
-				} else
+					precision = (int32_t) va_arg(vargs, int32_t);
+				} 
+				else {
 					precision = _atoi(&format);
-
+				}
 				if (precision > MAXFLD)
 					precision = -1;
 				c = *format++;
@@ -517,6 +519,7 @@ int _prf(int (*func)(), void *dest, char *format, va_list vargs)
 
 			need_justifying = false;
 			prefix = 0;
+
 			switch (c) {
 			case 'c':
 				buf[0] = (char) ((int32_t) va_arg(vargs, int32_t));
@@ -524,7 +527,6 @@ int _prf(int (*func)(), void *dest, char *format, va_list vargs)
 				need_justifying = true;
 				c = 1;
 				break;
-
 
 			case 'd':
 			case 'i':
@@ -545,9 +547,9 @@ int _prf(int (*func)(), void *dest, char *format, va_list vargs)
 					val = va_arg(vargs, int32_t);
 					break;
 				}
-				int32_temp = (int32_t) va_arg(vargs, int32_t);
-				c = _to_dec(buf, int32_temp, fplus, fspace, precision);
-				if (fplus || fspace || (int32_temp < 0))
+				val = (int32_t) va_arg(vargs, int32_t);
+				c = _to_dec(buf, val, fplus, fspace, precision);
+				if (fplus || fspace || (val < 0))
 					prefix = 1;
 				need_justifying = true;
 				if (precision != -1)
@@ -595,7 +597,7 @@ int _prf(int (*func)(), void *dest, char *format, va_list vargs)
 						*va_arg(vargs, size_t *) = count;
 						break;
 					default:
-						*va_arg(vargs, int *) = count;
+						*va_arg(vargs, int32_t *) = count;
 						break;
 					}
 					continue;
