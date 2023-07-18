@@ -104,10 +104,6 @@ static int _to_dec(char *buf, int64_t value, int fplus, int fspace, int precisio
 {
 	char *start = buf;
 
-#if (MAXFLD < 16)
-  #error buffer size MAXFLD is too small
-#endif
-
 	if (value < 0) {
 		*buf++ = '-';
 		if (value != (int64_t)0x8000000000000000)
@@ -117,7 +113,7 @@ static int _to_dec(char *buf, int64_t value, int fplus, int fspace, int precisio
 	else if (fspace)
 		*buf++ = ' ';
 
-	return (buf + _to_udec(buf, value, precision)) - start;
+	return (buf + _to_udec(buf, (uint64_t) value, precision)) - start;
 }
 
 static	void _rlrshift(uint64_t *v)
@@ -141,16 +137,7 @@ static	void _rlrshift(uint64_t *v)
  * taken from the full 64 bit space.
  */
 static void _ldiv5(uint64_t *v)
-{			// case 'x':
-			// case 'X':
-			// 	uint32_temp = (uint32_t) va_arg(vargs, uint32_t);
-			// 	c = _to_hex(buf, uint32_temp, falt, precision, c);
-			// 	if (falt)
-			// 		prefix = 2;
-			// 	need_justifying = true;
-			// 	if (precision != -1)
-			// 		pad = ' ';
-			// 	break;
+{
 	uint32_t i, hi;
 	uint64_t rem = *v, quot = 0, q;
 	static const char shifts[] = { 32, 3, 0 };
