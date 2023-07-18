@@ -37,20 +37,19 @@ static void _uc(char *buf)
 static int _to_x(char *buf, uint64_t n, int base, int minlen)
 {
 	char *start = buf;
+	int len;
 
 	do {
-		int d = n % base;
-
+		unsigned int d = n % base;
 		n /= base;
 		*buf++ = '0' + d + (d > 9 ? ('a' - '0' - 10) : 0);
 	} while (n);
 
 	// reserve the string and pad with leading zero if necessary
-	int len;
 
-	while (buf - start < minlen) {
-		*buf++ = '0';
-	}
+	// while (buf - start < minlen) {
+	// 	*buf++ = '0';
+	// }
 
 	*buf = 0;
 	len = buf - start;
@@ -106,14 +105,13 @@ static int _to_dec(char *buf, int64_t value, int fplus, int fspace, int precisio
 
 	if (value < 0) {
 		*buf++ = '-';
-		if (value != (int64_t)0x8000000000000000)
-			value = -value;
+		value = -value;
 	} else if (fplus)
 		*buf++ = '+';
 	else if (fspace)
 		*buf++ = ' ';
 
-	return (buf + _to_udec(buf, (uint64_t) value, precision)) - start;
+	return (buf + _to_udec(buf, value, precision)) - start;
 }
 
 static	void _rlrshift(uint64_t *v)
@@ -138,7 +136,7 @@ static	void _rlrshift(uint64_t *v)
  */
 static void _ldiv5(uint64_t *v)
 {
-	uint32_t i, hi;
+	uint32_t hi;
 	uint64_t rem = *v, quot = 0, q;
 	static const char shifts[] = { 32, 3, 0 };
 
@@ -147,7 +145,7 @@ static void _ldiv5(uint64_t *v)
 	 */
 	rem += 2;
 
-	for (i = 0; i < 3; i++) {
+	for (int i = 0; i < 3; i++) {
 		hi = rem >> shifts[i];
 		q = (uint64_t)(hi / 5) << shifts[i];
 		rem -= q * 5;
@@ -159,16 +157,18 @@ static void _ldiv5(uint64_t *v)
 
 static	char _get_digit(uint64_t *fr, int *digit_count)
 {
-	int		rval;
+	char rval;
 
 	if (*digit_count > 0) {
 		*digit_count -= 1;
 		*fr = *fr * 10;
 		rval = ((*fr >> 60) & 0xF) + '0';
 		*fr &= 0x0FFFFFFFFFFFFFFFull;
-	} else
+	} else {
 		rval = '0';
-	return (char) (rval);
+	}
+
+	return rval;
 }
 
 /*
@@ -213,7 +213,6 @@ static int _to_float(char *buf, uint64_t double_temp, int c, int falt, int fplus
 
 	if (exp == 0x7ff) {
 		if (sign) {
-	} else if (fspace) {
 			*buf++ = '-';
 		}
 		if (!fract) {
@@ -381,12 +380,9 @@ static int _to_float(char *buf, uint64_t double_temp, int c, int falt, int fplus
 
 static int _atoi(char **sptr)
 {
-	register char *p;
-	register int   i;
+	register char *p = *sptr - 1;
+	register int   i = 0;
 
-	i = 0;
-	p = *sptr;
-	p--;
 	while (isdigit(((int) *p)))
 		i = 10 * i + *p++ - '0';
 	*sptr = p;
@@ -401,36 +397,33 @@ int _prf(int (*func)(), void *dest, char *format, va_list vargs)
 	 * the buffer size, either MAXFLD should be changed or the change
 	 * has to be propagated across the file
 	 */
-	char			buf[MAXFLD + 1];
-	register int	c;
-	int				count;
-	int				falt;
-	int				fminus;
-	int				fplus;
-	int				fspace;
-	int	            iden;
-	int				need_justifying;
-	char			pad;
-	int				precision;
-	int				prefix;
-	int				width;
-	char			*cptr_temp;
-	int32_t			*int32ptr_temp;
-	int32_t			int32_temp;
-	uint64_t		double_temp;
-	long long       val;
-
-	count = 0;
-	iden = 0;
+	char          buf[MAXFLD + 1];
+	register int  c;
+	int           count = 0;
+	bool          falt;
+	bool          fminus;
+	bool          fplus;
+	bool          fspace;
+	bool          need_justifying;
+	int           iden = 0;
+	char          pad;
+	int           precision;
+	int           prefix;
+	int           width;
+	char          *cptr_temp;
+	int32_t       *int32ptr_temp;
+	int32_t       int32_temp;
+	uint64_t      double_temp;
+	long long     val;
 
 	while ((c = *format++)) {
 		if (c != '%') {
 			if ((*func) (c, dest) == EOF) {
 				return EOF;
 			}
-
 			count++;
-		} else {
+		} 
+		else {
 			fminus = fplus = fspace = falt = false;
 			pad = ' ';		/* Default pad character    */
 			precision = -1;	/* No precision specified   */
@@ -552,8 +545,8 @@ int _prf(int (*func)(), void *dest, char *format, va_list vargs)
 					val = va_arg(vargs, int32_t);
 					break;
 				}
-
-				int32_temp = _to_dec(buf, val, fplus, fspace, precision);
+				int32_temp = (int32_t) va_arg(vargs, int32_t);
+				c = _to_dec(buf, int32_temp, fplus, fspace, precision);
 				if (fplus || fspace || (int32_temp < 0))
 					prefix = 1;
 				need_justifying = true;
@@ -583,7 +576,7 @@ int _prf(int (*func)(), void *dest, char *format, va_list vargs)
 					prefix = 1;
 				need_justifying = true;
 				break;
-				if (fplus || fspace || (int32_temp < 0))
+
 			case 'n':
 				switch (iden) {
 					case 'h':
@@ -692,7 +685,6 @@ int _prf(int (*func)(), void *dest, char *format, va_list vargs)
 				if ((*func)('%', dest) == EOF) {
 					return EOF;
 				}
-
 				count++;
 				break;
 
