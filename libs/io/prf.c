@@ -34,7 +34,7 @@ static void _uc(char *buf)
  * using the digit characters 0-9a-z (i.e. base>36 will start writing
  * odd bytes), padding with leading zeros up to the minimum length.
  */
-static int _to_x(char *buf, uint64_t n, int base, int minlen)
+static int _to_x(char *buf, uint64_t n, int base)
 {
 	char *start = buf;
 	int len;
@@ -61,7 +61,7 @@ static int _to_x(char *buf, uint64_t n, int base, int minlen)
 	return len;
 }
 
-static int _to_hex(char *buf, uint64_t value, int alt_form, int precision, int prefix)
+static int _to_hex(char *buf, uint64_t value, int alt_form, int prefix)
 {
 	int len;
 	char *buf0 = buf;
@@ -71,7 +71,7 @@ static int _to_hex(char *buf, uint64_t value, int alt_form, int precision, int p
 		*buf++ = 'x';
 	}
 
-	len = _to_x(buf, value, 16, precision);
+	len = _to_x(buf, value, 16);
 	if (prefix == 'X') {
 		_uc(buf0);
 	}
@@ -79,7 +79,7 @@ static int _to_hex(char *buf, uint64_t value, int alt_form, int precision, int p
 	return len + (buf - buf0);
 }
 
-static int _to_octal(char *buf, uint64_t value, int alt_form, int precision)
+static int _to_octal(char *buf, uint64_t value, int alt_form)
 {
 	char *buf0 = buf;
 
@@ -91,15 +91,15 @@ static int _to_octal(char *buf, uint64_t value, int alt_form, int precision)
 			return 1;
 		}
 	}
-	return (buf - buf0) + _to_x(buf, value, 8, precision);
+	return (buf - buf0) + _to_x(buf, value, 8);
 }
 
-static int _to_udec(char *buf, uint64_t value, int precision)
+static int _to_udec(char *buf, uint64_t value)
 {
-	return _to_x(buf, value, 10, precision);
+	return _to_x(buf, value, 10);
 }
 
-static int _to_dec(char *buf, int64_t value, int fplus, int fspace, int precision)
+static int _to_dec(char *buf, int64_t value, int fplus, int fspace)
 {
 	char *start = buf;
 
@@ -111,7 +111,7 @@ static int _to_dec(char *buf, int64_t value, int fplus, int fspace, int precisio
 	else if (fspace)
 		*buf++ = ' ';
 
-	return (buf + _to_udec(buf, value, precision)) - start;
+	return (buf + _to_udec(buf, value)) - start;
 }
 
 static	void _rlrshift(uint64_t *v)
@@ -538,17 +538,13 @@ int _prf(int (*func)(), void *dest, char *format, va_list vargs)
 				case 'z':
 					val = va_arg(vargs, long long);
 					break;
-				// case 'z':
-				// 	val = va_arg(vargs, size_t);
-				// 	break;
 				case 'h':
 				case 'H':
 				default:
-					val = va_arg(vargs, int32_t);
+					val = va_arg(vargs, int);
 					break;
 				}
-				val = (int32_t) va_arg(vargs, int32_t);
-				c = _to_dec(buf, val, fplus, fspace, precision);
+				c = _to_dec(buf, val, fplus, fspace);
 				if (fplus || fspace || (val < 0))
 					prefix = 1;
 				need_justifying = true;
@@ -605,17 +601,9 @@ int _prf(int (*func)(), void *dest, char *format, va_list vargs)
 				*int32ptr_temp = count;
 				break;
 
-			// case 'o':
-			// 	uint32_temp = (uint32_t) va_arg(vargs, uint32_t);
-			// 	c = _to_octal(buf, uint32_temp, falt, precision);
-			// 	need_justifying = true;
-			// 	if (precision != -1)
-			// 		pad = ' ';
-			// 	break;
-
 			case 'p':
 				val = (uint32_t) va_arg(vargs, uint32_t);
-				c = _to_hex(buf, val, true, 8, (int) 'x');
+				c = _to_hex(buf, val, true, (int) 'x');
 				need_justifying = true;
 				if (precision != -1)
 					pad = ' ';
@@ -649,9 +637,6 @@ int _prf(int (*func)(), void *dest, char *format, va_list vargs)
 					case 'z':
 						val = va_arg(vargs, unsigned long long);
 						break;
-					// case 'z':
-					// 	val = va_arg(vargs, size_t);
-					// 	break;
 					case 'h':
 					case 'H':
 					default:
@@ -659,29 +644,17 @@ int _prf(int (*func)(), void *dest, char *format, va_list vargs)
 						break;
 				}
 				if (c == 'o') {
-					c = _to_octal(buf, val, falt, precision);
+					c = _to_octal(buf, val, falt);
 				} else if (c == 'u') {
-					c = _to_udec(buf, val, precision);
+					c = _to_udec(buf, val);
 				} else {
-					c = _to_hex(buf, val, falt, precision, c);
+					c = _to_hex(buf, val, falt, c);
 					if (falt) prefix = 2;
 				}
-
 				need_justifying = true;
 				if (precision != -1)
 					pad = ' ';
 				break;
-
-			// case 'x':
-			// case 'X':
-			// 	uint32_temp = (uint32_t) va_arg(vargs, uint32_t);
-			// 	c = _to_hex(buf, uint32_temp, falt, precision, c);
-			// 	if (falt)
-			// 		prefix = 2;
-			// 	need_justifying = true;
-			// 	if (precision != -1)
-			// 		pad = ' ';
-			// 	break;
 
 			case '%':
 				if ((*func)('%', dest) == EOF) {
