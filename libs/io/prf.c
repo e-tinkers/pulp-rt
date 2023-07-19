@@ -399,7 +399,6 @@ int _prf(int (*func)(), void *dest, char *format, va_list vargs)
 	 */
 	char          buf[MAXFLD + 1];
 	char          pad;
-	char          *cptr_temp;
 	bool          falt;
 	bool          fminus;
 	bool          fplus;
@@ -411,9 +410,6 @@ int _prf(int (*func)(), void *dest, char *format, va_list vargs)
 	int           precision;
 	int           prefix;
 	int           width;
-	int32_t       *int32ptr_temp;
-	int32_t       int32_temp;
-	uint64_t      double_temp;
 	long long     val;
 
 	while ((c = *format++)) {
@@ -558,48 +554,29 @@ int _prf(int (*func)(), void *dest, char *format, va_list vargs)
 			case 'F':
 			case 'g':
 			case 'G':
-				/* standard platforms which supports double */
-				{
-					union {
-						double d;
-						uint64_t i;
-					} u;
+			    {
+					uint64_t double_temp;
+					/* standard platforms which supports double */
+					{
+						union {
+							double d;
+							uint64_t i;
+						} u;
 
-					u.d = (double) va_arg(vargs, double);
-					double_temp = u.i;
+						u.d = (double) va_arg(vargs, double);
+						double_temp = u.i;
+					}
+
+					c = _to_float(buf, double_temp, c, falt, fplus, fspace, precision);
+					if (fplus || fspace || (buf[0] == '-'))
+						prefix = 1;
+					need_justifying = true;
 				}
-
-				c = _to_float(buf, double_temp, c, falt, fplus, fspace, precision);
-				if (fplus || fspace || (buf[0] == '-'))
-					prefix = 1;
-				need_justifying = true;
 				break;
 
 			case 'n':
-				switch (iden) {
-					case 'h':
-						*va_arg(vargs, short *) = count;
-						break;
-					case 'H':
-						*va_arg(vargs, char *) = count;
-						break;
-					case 'l':
-						*va_arg(vargs, long *) = count;
-						break;
-					case 'L':
-						*va_arg(vargs, long long *) = count;
-						break;
-					case 'z':
-						*va_arg(vargs, size_t *) = count;
-						break;
-					default:
-						*va_arg(vargs, int32_t *) = count;
-						break;
-					}
-					continue;
-				int32ptr_temp = (int32_t *)va_arg(vargs, int32_t *);
-				*int32ptr_temp = count;
-				break;
+				*va_arg(vargs, short *) = count;
+				continue;
 
 			case 'p':
 				val = (uint32_t) va_arg(vargs, uint32_t);
@@ -610,18 +587,20 @@ int _prf(int (*func)(), void *dest, char *format, va_list vargs)
 				break;
 
 			case 's':
-				cptr_temp = (char *) va_arg(vargs, char *);
-				/* Get the string length */
-				for (c = 0; c < MAXFLD; c++) {
-					if (cptr_temp[c] == '\0') {
-						break;
+				{
+					char * cptr_temp = (char *) va_arg(vargs, char *);
+					/* Get the string length */
+					for (c = 0; c < MAXFLD; c++) {
+						if (cptr_temp[c] == '\0') {
+							break;
+						}
 					}
-				}
-				if ((precision >= 0) && (precision < c))
-					c = precision;
-				if (c > 0) {
-					memcpy(buf, cptr_temp, (size_t) c);
-					need_justifying = true;
+					if ((precision >= 0) && (precision < c))
+						c = precision;
+					if (c > 0) {
+						memcpy(buf, cptr_temp, (size_t) c);
+						need_justifying = true;
+					}
 				}
 				break;
 
