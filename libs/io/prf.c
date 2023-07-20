@@ -111,7 +111,7 @@ static int _to_dec(char *buf, int64_t value, int fplus, int fspace)
 	else if (fspace)
 		*buf++ = ' ';
 
-	return (buf + _to_udec(buf, value)) - start;
+	return (buf + _to_x(buf, (uint64_t) value, 10)) - start;
 }
 
 static	void _rlrshift(uint64_t *v)
@@ -410,6 +410,7 @@ int _prf(int (*func)(), void *dest, char *format, va_list vargs)
 	int           precision;
 	int           prefix;
 	int           width;
+	int32_t * 	  int32ptr_temp;
 	long long     val;
 
 	while ((c = *format++)) {
@@ -575,8 +576,9 @@ int _prf(int (*func)(), void *dest, char *format, va_list vargs)
 				break;
 
 			case 'n':
-				*va_arg(vargs, short *) = count;
-				continue;
+				int32ptr_temp = va_arg(vargs, int32_t *);
+				*int32ptr_temp = count;
+				break;
 
 			case 'p':
 				val = (uint32_t) va_arg(vargs, uint32_t);
