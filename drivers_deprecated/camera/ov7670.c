@@ -334,7 +334,8 @@ rt_camera_t* __rt_ov7670_open(int channel, rt_cam_conf_t* cam, rt_event_t*event)
 
     if (rt_platform() == ARCHI_PLATFORM_FPGA || rt_platform() == ARCHI_PLATFORM_BOARD){
         rt_i2c_conf_init(&camera->i2c_conf);
-        camera->i2c_conf.cs = 0x42;
+        // camera->i2c_conf.cs = 0x42;     // for OV7670
+        camera->i2c_conf.cs = 0x78;     // for OV5640
         camera->i2c_conf.id = cam->control_id;
 
         if (camera->i2c_conf.id == -1)
