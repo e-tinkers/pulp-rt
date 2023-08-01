@@ -230,6 +230,17 @@ void __rt_spim_send_async(rt_spim_t *handle, void *data, size_t len, int qspi, r
 
   cmd->cmd[0] = handle->cfg;
   cmd->cmd[1] = SPI_CMD_SOT(handle->cs);
+  /*
+     SPI_CMD_TX_DATA(words,wordstrans,bitsword,qpi,lsbfirst)
+     data structure for SPI_CMD_TX_DATA register:
+     31 30 29 28 27 26 25 24 23 22 21 20 19 18 17 16 15 14 13 12 11 10 09 08 07 06 05 04 03 02 01 00
+      |           |  |           |  |  |           |                                               |
+      |           |  |           |  |  +===========+--- bitsword - 1 = 32 - 1 (0x11111)
+      |           |  |           +==+------------------ wordstrans: 0 = 1 bit, 1 = 2 bits, 2 = 4 bits
+      |           |  +--------------------------------- lsbfirst: 0 = MSB_FIRST, 1 = LSB_FIRST
+      |           +------------------------------------ qpi: 0 = spi, 1 = qspi
+      +------------------------------------------------ SPI_CMD_TX_DATA (0x06)
+  */
   cmd->cmd[2] = SPI_CMD_TX_DATA(len/32, SPI_CMD_1_WORD_PER_TRANSF, 32, qspi, SPI_CMD_MSB_FIRST);
   cmd->cmd[3] = SPI_CMD_EOT(1, cs_mode == RT_SPIM_CS_KEEP);
 
