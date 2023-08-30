@@ -40,22 +40,10 @@ static int __rt_spi_get_div(int spi_freq)
 {
   int periph_freq = __rt_freq_periph_get();
 
-  if (spi_freq >= periph_freq)
-  {
-    return 0;
-  }
-  else
-  {
-    // Round-up the divider to obtain an SPI frequency which is below the maximum
-    int div = (__rt_freq_periph_get() + spi_freq - 1)/ spi_freq;
+  if (spi_freq >= periph_freq) return 0;
 
-    // The SPIM always divide by 2 once we activate the divider, thus increase by 1
-    // in case it is even to not go avove the max frequency.
-    if (div & 1) div += 1;
-    div >>= 1;
+  return ((periph_freq + spi_freq) / spi_freq - 1 ) >> 1;
 
-    return div;
-  }
 }
 
 static inline int __rt_spim_get_byte_align(int wordsize, int big_endian)
@@ -240,7 +228,7 @@ void __rt_spim_send_async(rt_spim_t *handle, void *data, size_t len, int qspi, r
         qpi: 0 = spi, 1 = qspi
         lsbfirst: 0 = MSB_FIRST, 1 = LSB_FIRST
   */
-  cmd->cmd[2] = SPI_CMD_TX_DATA(len, SPI_CMD_1_WORD_PER_TRANSF, 32, qspi, SPI_CMD_MSB_FIRST);
+  cmd->cmd[2] = SPI_CMD_TX_DATA(len/32, SPI_CMD_1_WORD_PER_TRANSF, 32, qspi, SPI_CMD_MSB_FIRST);
   cmd->cmd[3] = SPI_CMD_EOT(1, cs_mode == RT_SPIM_CS_KEEP);
 
   if (likely(__rt_spim_periph_push(periph, copy)))
