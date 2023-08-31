@@ -110,7 +110,12 @@ void rt_event_push_delayed(rt_event_t *event, int us)
     //   TIMER_CFG_LO_IRQEN(1)  |
     //   TIMER_CFG_LO_CCFG(1)
     // );
-    timer_conf_set(timer_base_fc(0, 1), TIMER_CFG_LO_ENABLE(1) | TIMER_CFG_LO_IRQEN(1));
+    timer_conf_set(timer_base_fc(0, 1), 
+      TIMER_CFG_LO_ENABLE(1) | 
+      TIMER_CFG_LO_IRQEN(1)  |
+      TIMER_CFG_LO_PEN(1)    |
+      TIMER_CFG_LO_PVAL(100)
+    );
   }
 
   rt_irq_restore(irq);
@@ -138,14 +143,25 @@ RT_FC_BOOT_CODE void __attribute__((constructor)) __rt_time_init()
   // Configure the FC timer in 64 bits mode as it will be used as a common
   // timer for all virtual timers.
   // We also use the ref clock to make the frequency stable.
+  
   // Henry's comment (Aug 30 2023): Original code assuming to get clock source from a 32kHz
-  // clock souce which is not available in ECS-DOT. This setting use PLL as clock source  
+  // clock souce which is not available in ECS-DOT. This setting use PLL as clock source
+  // the value 100 in TIMER_CFG_LO_PVAL(100) doesn't seem to make any sense, but it works to 
+  // produce the nearly right ms value (1000us would be 1068, 1500us would be 1587, 2000us 
+  // would be 2075, etc.), change it to 200 deosn't seem to make any difference, but change it
+  // 10 or without the TIMER_CFG_LO_PVAL(), the us value will be 7 times higher.
+
   // timer_conf_set(timer_base_fc(0, 1),
   //   TIMER_CFG_LO_ENABLE(1) |
   //   TIMER_CFG_LO_RESET(1)  |
   //   TIMER_CFG_LO_CCFG(1)
   // );
-  timer_conf_set(timer_base_fc(0, 1), TIMER_CFG_LO_ENABLE(1) | TIMER_CFG_LO_RESET(1));
+  timer_conf_set(timer_base_fc(0, 1), 
+    TIMER_CFG_LO_ENABLE(1) | 
+    TIMER_CFG_LO_RESET(1)  |
+    TIMER_CFG_LO_PEN(1)    |
+    TIMER_CFG_LO_PVAL(100)
+  );
 
 #if defined(ARCHI_HAS_FC)
   rt_irq_set_handler(ARCHI_FC_EVT_TIMER0_HI, __rt_timer_handler);
