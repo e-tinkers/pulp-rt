@@ -293,7 +293,7 @@ void __rt_freq_init()
   }
   else
   {
-    __rt_freq_domains[RT_FREQ_DOMAIN_FC] = 40000000;
+    __rt_freq_domains[RT_FREQ_DOMAIN_FC] = 50000000;
   }
 
 #if defined(__RT_FREQ_DOMAIN_CL) && __RT_FREQ_DOMAIN_CL < RT_FREQ_NB_DOMAIN
